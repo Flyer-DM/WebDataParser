@@ -1,0 +1,1 @@
+from parsers.wildberries_parser import Wildberries
