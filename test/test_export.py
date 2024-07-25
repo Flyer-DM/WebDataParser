@@ -1,10 +1,13 @@
 import os
+import json
+import pickle
 import unittest
 from pathlib import Path
 from data_export import ExportData
 from data_export.txt_export import TXTExport
 from data_export.csv_export import CSVExport
 from data_export.json_export import JSONExport
+from data_export.pickle_export import PickleExport
 
 
 class TestExport(unittest.TestCase):
@@ -57,6 +60,20 @@ class TestExport(unittest.TestCase):
         files = os.listdir(self.default_download_path)
         files = list(filter(lambda f: f.endswith('.json'), files))
         self.assertNotEqual([], files)
+        with open(exporter.exporter.file_name, 'r') as file:
+            data = json.load(file)
+            self.assertListEqual(self.data, data)
+
+    def test_export_pickle(self):
+        exporter = ExportData('pickle', self.data, self.test_website)
+        exporter.export()
+        self.assertIsInstance(exporter.exporter, PickleExport)
+        files = os.listdir(self.default_download_path)
+        files = list(filter(lambda f: f.endswith('.pickle'), files))
+        self.assertNotEqual([], files)
+        with open(exporter.exporter.file_name, 'rb') as file:
+            data = pickle.load(file)
+            self.assertListEqual(self.data, data)
 
 
 if __name__ == "__main__":
