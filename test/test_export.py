@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from data_export import ExportData
 from data_export.txt_export import TXTExport
+from data_export.csv_export import CSVExport
 
 
 class TestExport(unittest.TestCase):
@@ -38,6 +39,14 @@ class TestExport(unittest.TestCase):
         exporter.export()
         files = os.listdir(self.default_download_path)
         files = list(filter(lambda f: f.endswith('.txt'), files))
+        self.assertNotEqual([], files)
+
+    def test_export_csv(self):
+        exporter = ExportData('csv', self.data, self.test_website)
+        exporter.export()
+        self.assertIsInstance(exporter.exporter, CSVExport)
+        files = os.listdir(self.default_download_path)
+        files = list(filter(lambda f: f.endswith('.csv'), files))
         self.assertNotEqual([], files)
 
 

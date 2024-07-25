@@ -1,27 +1,31 @@
+import csv
 from data_export.base_export import BaseExport
 from typing import List, Dict
 
 
-class TXTExport(BaseExport):
+class CSVExport(BaseExport):
 
-    __version__ = "0.2"
+    __version__ = "0.1"
 
     def __init__(self, data: List[Dict], website: str, name: str = None, path: str = None):
-        """version = 0.2"""
+        """version = 0.1"""
         super().__init__(data, website, name, path)
-        self._extension = ".txt"
+        self._extension = ".csv"
         self.file_name = f"{self.path}/{self.name}{self.extension}"
+        self.headers = self.data[0].keys()
 
     @property
     def extension(self) -> str:
-        """Расширение файла - txt
-        version = 0.1.1
+        """Расширение файла - csv
+        version = 0.1
         """
         return self._extension
 
     def export_data(self) -> None:
         """Функция экспорта данных
-        version = 0.1.1
+        version = 0.1
         """
-        with open(self.file_name, 'w') as f:
-            print(self.data, file=f)
+        with open(self.file_name, 'w', newline='') as f:
+            w = csv.DictWriter(f, self.headers)
+            w.writeheader()
+            w.writerows(self.data)
