@@ -1,15 +1,17 @@
 from data_export.base_export import BaseExport
 from data_export.txt_export import TXTExport
 from data_export.csv_export import CSVExport
+from data_export.json_export import JSONExport
 from typing import List, Dict
 
 
 class ExportData:
 
-    __version__ = "0.2"
+    __version__ = "0.3"
     exporters = {
         "txt": TXTExport,
-        "csv": CSVExport
+        "csv": CSVExport,
+        "json": JSONExport,
     }
 
     @classmethod

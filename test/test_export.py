@@ -4,6 +4,7 @@ from pathlib import Path
 from data_export import ExportData
 from data_export.txt_export import TXTExport
 from data_export.csv_export import CSVExport
+from data_export.json_export import JSONExport
 
 
 class TestExport(unittest.TestCase):
@@ -47,6 +48,14 @@ class TestExport(unittest.TestCase):
         self.assertIsInstance(exporter.exporter, CSVExport)
         files = os.listdir(self.default_download_path)
         files = list(filter(lambda f: f.endswith('.csv'), files))
+        self.assertNotEqual([], files)
+
+    def test_export_json(self):
+        exporter = ExportData('json', self.data, self.test_website)
+        exporter.export()
+        self.assertIsInstance(exporter.exporter, JSONExport)
+        files = os.listdir(self.default_download_path)
+        files = list(filter(lambda f: f.endswith('.json'), files))
         self.assertNotEqual([], files)
 
 
