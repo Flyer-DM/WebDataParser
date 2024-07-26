@@ -1,20 +1,20 @@
 import os
 from pathlib import Path
 from abc import ABC, abstractmethod
-from time import gmtime, strftime
+from datetime import datetime
 from typing import List, Dict
 
 
 class BaseExport(ABC):
 
-    __version__ = "0.2"
+    __version__ = "0.2.1"
 
     def __set_base_name(self) -> str:
         """Получение имени файла по умолчанию, если пользователь не указал его явно, а именно название вебсайта, по
         которому производился парсинг и дата и время сохранения файла
-        version = 0.1.1
+        version = 0.1.2
         """
-        export_time = strftime("%Y-%m-%d %H %M %S", gmtime())
+        export_time = datetime.now().strftime('%Y%m%d%H%M%S')
         base_name = f"{self.website} {export_time}"
         return base_name
 

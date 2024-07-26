@@ -22,7 +22,7 @@ class TestExport(unittest.TestCase):
         self.test_website = "website"
         self.test_name = "mydata"
         self.test_path = "path/"
-        self.real_path = Path.home()
+        self.real_path = str(Path.home())
         self.default_download_path = str(os.path.join(Path.home(), "Downloads"))
 
     def test_exporter(self):
