@@ -4,18 +4,20 @@ from data_export.csv_export import CSVExport
 from data_export.json_export import JSONExport
 from data_export.pickle_export import PickleExport
 from data_export.parquet_export import ParquetExport
+from data_export.xlsx_export import ExcelExport
 from typing import List, Dict
 
 
 class ExportData:
 
-    __version__ = "0.5"
+    __version__ = "0.6"
     exporters = {
         "txt": TXTExport,
         "csv": CSVExport,
         "json": JSONExport,
         "pickle": PickleExport,
         "parquet": ParquetExport,
+        "xlsx": ExcelExport
     }
 
     @classmethod

@@ -11,6 +11,7 @@ from data_export.csv_export import CSVExport
 from data_export.json_export import JSONExport
 from data_export.pickle_export import PickleExport
 from data_export.parquet_export import ParquetExport
+from data_export.xlsx_export import ExcelExport
 
 
 class TestExport(unittest.TestCase):
@@ -21,7 +22,7 @@ class TestExport(unittest.TestCase):
         self.test_website = "website"
         self.test_name = "mydata"
         self.test_path = "path/"
-        self.real_path = r"C:\Users\kondr\OneDrive\Рабочий стол"
+        self.real_path = Path.home()
         self.default_download_path = str(os.path.join(Path.home(), "Downloads"))
 
     def test_exporter(self):
@@ -86,6 +87,16 @@ class TestExport(unittest.TestCase):
         files = list(filter(lambda f: f.endswith('.parquet'), files))
         self.assertNotEqual([], files)
         data = pd.read_parquet(exporter.exporter.file_name)
+        self.assertListEqual(self.data, list(data.T.to_dict().values()))
+
+    def test_export_excel(self):
+        exporter = ExportData('xlsx', self.data, self.test_website)
+        exporter.export()
+        self.assertIsInstance(exporter.exporter, ExcelExport)
+        files = os.listdir(self.default_download_path)
+        files = list(filter(lambda f: f.endswith('.xlsx'), files))
+        self.assertNotEqual([], files)
+        data = pd.read_excel(exporter.exporter.file_name, index_col=0)
         self.assertListEqual(self.data, list(data.T.to_dict().values()))
 
 
