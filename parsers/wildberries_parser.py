@@ -3,27 +3,22 @@ import time
 from typing import Optional
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
+from helpers.parsers_helpers import open_scroller
 from tqdm import tqdm
 
 
 class Wildberries:
-    __version__ = "0.1"
 
-    @staticmethod
-    def _open_scroller() -> str:
-        """Функция для прокрутки страницы вниз на js
-        version = 0.1
-        """
-        with open("./../helpers/scrollFunc.js", 'r') as file:
-            return file.read()
+    __version__ = "0.1.1"
 
     def __init__(self):
+        """version = 0.2"""
         self.page = None
         self.pages_links: list[str | Optional[int]] = []
         self.goods_links: list[str] = []
         self.parsing_result: list[dict] = []
         self.base_link = "https://www.wildberries.ru/"
-        self.scroller = self._open_scroller()
+        self.scroller = open_scroller()
         self.PAGE_SCROLL_SIZE = 15
 
     def _get_goods_links(self, page_link: str) -> list[str]:
@@ -149,7 +144,7 @@ class Wildberries:
 
     def find_all_goods(self, keyword: str, number_of_pages: int) -> None:
         """Поиск всех ссылок на товары по ключевому слову
-        version = 0.1
+        version = 0.1.1
         """
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
@@ -158,7 +153,7 @@ class Wildberries:
             self.page.goto(self.base_link)  # открытие ссылки сайта
             self.page.wait_for_selector('input[id="searchInput"]')  # поиск поля input
             search_input = self.page.locator('input[id="searchInput"]')  # помещение курсора в input
-            search_input.fill(keyword)
+            search_input.fill(keyword, timeout=300)
             search_input.press('Enter')  # запуск процесса поиска
             try:  # проверка, что по запросу ничего не найдено
                 self.page.wait_for_selector('text="Попробуйте поискать по-другому или сократить запрос"', timeout=1_000)
