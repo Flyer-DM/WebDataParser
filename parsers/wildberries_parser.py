@@ -5,9 +5,12 @@ from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from tqdm import tqdm
 
+from parsers_dataclasses import WildberriesProduct
+
 
 class Wildberries:
-    __version__ = "0.1"
+
+    __version__ = "0.1.1"
 
     @staticmethod
     def _open_scroller() -> str:
@@ -69,14 +72,6 @@ class Wildberries:
                     break
 
     @staticmethod
-    def __format_price(price: str) -> str:
-        """Форматирование цены товара
-        version = 0.1
-        """
-        price = price.encode('ascii', errors='ignore')
-        return "{0:,}".format(int(price)).replace(",", " ")
-
-    @staticmethod
     def __parse_seller_descr(descr: str) -> tuple:
         """Парсинг доп информации о поставщике - уровень поставщика, сколько товаров продано, сколько времени на рынке
         version = 0.1
@@ -90,62 +85,41 @@ class Wildberries:
 
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.1
+        version = 0.1.1
         """
         title_selector = 'h1[class="product-page__title"]'
         self.page.goto(page_link)
         self.page.wait_for_selector(title_selector)
         title = self.page.query_selector(title_selector)
-        seller = self.page.query_selector('a[class="product-page__header-brand j-wba-card-item '
-                                          'j-wba-card-item-show j-wba-card-item-observe"]')
-        article = self.page.query_selector('span[id="productNmId"]')
-        price_wb_wallet = self.page.query_selector('span[class="price-block__wallet-price"]')
-        price = self.page.query_selector('ins[class="price-block__final-price wallet"]')
-        full_price = self.page.query_selector('del[class="price-block__old-price"]')
-        score = self.page.query_selector('span[class="product-review__rating '
-                                         'address-rate-mini address-rate-mini--sm"]')
-        reviews = self.page.query_selector('span[class="product-review__count-review '
-                                           'j-wba-card-item-show j-wba-card-item-observe"]')
-        category = self.page.query_selector('div[class="breadcrumbs__container"]')
+        product = WildberriesProduct(page_link, title)
+        product.seller = self.page.query_selector('a[class="product-page__header-brand j-wba-card-item '
+                                                  'j-wba-card-item-show j-wba-card-item-observe"]')
+        product.article = self.page.query_selector('span[id="productNmId"]')
+        product.price_wb_wallet = self.page.query_selector('span[class="price-block__wallet-price"]')
+        product.price = self.page.query_selector('ins[class="price-block__final-price wallet"]')
+        product.full_price = self.page.query_selector('del[class="price-block__old-price"]')
+        product.score = self.page.query_selector('span[class="product-review__rating '
+                                                 'address-rate-mini address-rate-mini--sm"]')
+        product.reviews = self.page.query_selector('span[class="product-review__count-review '
+                                                   'j-wba-card-item-show j-wba-card-item-observe"]')
+        product.category = self.page.query_selector('div[class="breadcrumbs__container"]')
         producers_goods_data_link = "href{:selectedNomenclature^brandAndSubjectUrl}{on $analitic.proceedAndSave 'IBC'}"
-        producers_goods = self.page.query_selector(f'a[data-link="{producers_goods_data_link}"]')
-        if producers_goods is not None:
-            producers_goods = self.base_link[:-1] + producers_goods.get_attribute('href')
-        same_category = self.page.query_selector('a[class="product-page__link j-wba-card-item '
-                                                 'j-wba-card-item-show j-wba-card-item-observe"]')
-        if same_category is not None:
-            same_category = self.base_link[:-1] + same_category.get_attribute('href')
-        refund = self.page.query_selector('li[class="advantages__item advantages__item--refund"]')
+        product.producers_goods = self.page.query_selector(f'a[data-link="{producers_goods_data_link}"]')
+        product.same_category = self.page.query_selector('a[class="product-page__link j-wba-card-item '
+                                                         'j-wba-card-item-show j-wba-card-item-observe"]')
+        product.refund = self.page.query_selector('li[class="advantages__item advantages__item--refund"]')
         self.page.hover('.seller-info__more.hide-mobile')  # наведение мышкой на значок подробностей о продавце
         seller_status = self.page.locator('.seller-params__list')
         seller_lvl = sold_goods = on_market = None
         if seller_status is not None:
             seller_status = seller_status.inner_text()
             seller_lvl, sold_goods, on_market = self.__parse_seller_descr(seller_status)
+        product.seller_lvl, product.sold_goods, product.on_market = seller_lvl, sold_goods, on_market
         self.page.click('text="Все характеристики и описание"')
         self.page.wait_for_timeout(50)
-        description = self.page.query_selector('p[class="option__text"]')
+        product.description = self.page.query_selector('p[class="option__text"]')
         # создание итогового словаря по товару
-        self.parsing_result.append({
-            "Ссылка на товар": page_link,
-            "Наименование товара": title.inner_text() if title is not None else None,
-            "Продавец": seller.inner_text() if seller is not None else None,
-            "Уровень продавца": seller_lvl,
-            "Продавец продал товаров": sold_goods,
-            "Продавец на рынке": on_market,
-            "Артикул": article.inner_text() if article is not None else None,
-            "Цена с wb кошельком": self.__format_price(
-                price_wb_wallet.inner_text()) if price_wb_wallet is not None else None,
-            "Цена": self.__format_price(price.inner_text()) if price is not None else None,
-            "Старая цена": self.__format_price(full_price.inner_text()) if full_price is not None else None,
-            "Средняя оценка": score.inner_text() if score is not None else None,
-            "Количество отзывов": reviews.inner_text() if reviews is not None else None,
-            "Категория товара": category.inner_text().replace("\n", "/") if category is not None else None,
-            "Товары производителя": producers_goods,
-            "Товары той же категории": same_category,
-            "Возврат товара": refund.inner_text() if refund is not None else None,
-            "Описание товара": description.inner_text() if description is not None else None
-        })
+        self.parsing_result.append(product.dict())
 
     def find_all_goods(self, keyword: str, number_of_pages: int) -> None:
         """Поиск всех ссылок на товары по ключевому слову
