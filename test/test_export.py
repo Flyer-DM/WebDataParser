@@ -56,6 +56,8 @@ class TestExport(unittest.TestCase):
         files = os.listdir(self.default_download_path)
         files = list(filter(lambda f: f.endswith('.csv'), files))
         self.assertNotEqual([], files)
+        data = pd.read_csv(exporter.exporter.file_name)
+        self.assertListEqual(self.data, list(data.T.to_dict().values()))
 
     def test_export_json(self):
         exporter = ExportData('json', self.data, self.test_website)
