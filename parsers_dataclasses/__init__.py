@@ -1,0 +1,1 @@
+from parsers_dataclasses.wildberries_dataclasses import WildberriesProduct
