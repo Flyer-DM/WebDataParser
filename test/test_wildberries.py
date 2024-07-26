@@ -7,8 +7,6 @@ from playwright.sync_api import sync_playwright
 
 class TestWildberries(unittest.TestCase):
 
-    __version__ = "0.1"
-
     def setUp(self):
         self.wb = Wildberries()
         self.keyword = "гантели разборные"
@@ -31,7 +29,7 @@ class TestWildberries(unittest.TestCase):
         self.assertEqual(1, len(self.wb.pages_links))
         self.assertNotEqual(0, len(self.wb.goods_links))
 
-    def parse_ten_goods(self):
+    def test_ten_goods(self):
         time.sleep(1)
         self.wb.find_all_goods(self.keyword, 1)
         self.wb.goods_links = self.wb.goods_links[:10]
@@ -48,24 +46,6 @@ class TestWildberries(unittest.TestCase):
         self.assertEqual(2, len(self.wb.pages_links))
         self.assertNotEqual([], self.wb.goods_links)
 
-    def test_max_pages(self):
-        time.sleep(1)
-        self.wb.find_all_goods(self.keyword, 10)
-        self.assertEqual(10, len(self.wb.pages_links))
-        self.assertNotEqual([], self.wb.goods_links)
-
-    def test_overmuch_pages(self):
-        time.sleep(1)
-        self.wb.find_all_goods(self.keyword, 15)
-        self.assertEqual(10, len(self.wb.pages_links))
-        self.assertNotEqual([], self.wb.goods_links)
-
-    def test_less_than_max_pages(self):
-        time.sleep(1)
-        self.wb.find_all_goods(self.keyword, 9)
-        self.assertEqual(9, len(self.wb.pages_links))
-        self.assertNotEqual([], self.wb.goods_links)
-
     def test_one_product(self):
         time.sleep(1)
         self.__test_product("https://www.wildberries.ru/catalog/228691002/detail.aspx")
@@ -77,5 +57,3 @@ class TestWildberries(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

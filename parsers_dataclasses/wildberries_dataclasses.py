@@ -7,7 +7,7 @@ from playwright.sync_api._generated import ElementHandle
 @dataclass
 class WildberriesProduct:
 
-    __version__ = "0.1"
+    __version__ = "0.1.1"
     __base_link = "https://www.wildberries.ru"
 
     page_link: str = field(init=True)  # ссылка на страницу товара
@@ -29,9 +29,11 @@ class WildberriesProduct:
     description: Optional[str] = field(init=False)  # описание товара
 
     def dict(self):
-        return {k: str(v) for k, v in asdict(self).items()}
+        """version = 0.2"""
+        return {k: v for k, v in asdict(self).items()}
 
     def __setattr__(self, key: str, value: Optional[Union[str, ElementHandle]]):
+        """version = 0.1"""
         if key in ("seller", "title", "refund", "description"):
             value = self.__inner_text(value)
         elif key in ("price_wb_wallet", "price", "full_price", "reviews"):
@@ -50,15 +52,21 @@ class WildberriesProduct:
 
     @staticmethod
     def __inner_text(value: Optional[ElementHandle]) -> str:
+        """Получение текстового содержимого тега
+        version = 0.1
+        """
         return value.inner_text() if value is not None else None
 
     @staticmethod
     def __href(value: Optional[ElementHandle]) -> str:
+        """Получение строковых ссылок из атрибутов, содержащих их
+        version = 0.1
+        """
         return (WildberriesProduct.__base_link + value.get_attribute('href')) if value is not None else None
 
     @staticmethod
     def __format_number(price: str) -> int:
-        """Форматирование цены товара
+        """Форматирование целочисленных атрибутов с присутствием нечисловых символов
         version = 0.1
         """
         return int(re.sub(r'[^\d]', '', price))
