@@ -2,12 +2,15 @@ import os
 import json
 import pickle
 import unittest
+import pandas as pd
 from pathlib import Path
+
 from data_export import ExportData
 from data_export.txt_export import TXTExport
 from data_export.csv_export import CSVExport
 from data_export.json_export import JSONExport
 from data_export.pickle_export import PickleExport
+from data_export.parquet_export import ParquetExport
 
 
 class TestExport(unittest.TestCase):
@@ -74,6 +77,16 @@ class TestExport(unittest.TestCase):
         with open(exporter.exporter.file_name, 'rb') as file:
             data = pickle.load(file)
             self.assertListEqual(self.data, data)
+
+    def test_export_parquet(self):
+        exporter = ExportData('parquet', self.data, self.test_website)
+        exporter.export()
+        self.assertIsInstance(exporter.exporter, ParquetExport)
+        files = os.listdir(self.default_download_path)
+        files = list(filter(lambda f: f.endswith('.parquet'), files))
+        self.assertNotEqual([], files)
+        data = pd.read_parquet(exporter.exporter.file_name)
+        self.assertListEqual(self.data, list(data.T.to_dict().values()))
 
 
 if __name__ == "__main__":
