@@ -1,69 +1,55 @@
 import re
 import time
-from typing import Optional
+import random
+from tqdm import tqdm
+from typing import Optional, Union, Literal
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
-from tqdm import tqdm
 from helpers.parsers_helpers import open_scroller
+from getuseragent import UserAgent
 
 from parsers_dataclasses import WildberriesProduct
 
 
 class Wildberries:
 
-    __version__ = "0.1.1"
+    __version__ = "0.1.2"
 
     def __init__(self):
-        """version = 0.1.1"""
+        """version = 0.2"""
         self.page = None
-        self.pages_links: list[str | Optional[int]] = []
-        self.goods_links: list[str] = []
+        self.goods_links: set[str] = set()
         self.parsing_result: list[dict] = []
-        self.base_link = "https://www.wildberries.ru/"
+        self.base_link = "https://www.wildberries.ru"
         self.scroller = open_scroller()
-        self.PAGE_SCROLL_SIZE = 15
 
-    def _get_goods_links(self, page_link: str) -> list[str]:
-        """Нахождение всех ссылок на товары на всей странице
-        version = 0.1
+    def _get_goods_links(self, number_of_goods: Union[Literal['max'], int] = 10) -> None:
+        """Сбор всех ссылок на товары. Либо собирается максимальное количество товаров, либо явно
+        указанное количество (по умолчанию=10).
+        version = 0.2
         """
-        self.page.goto(page_link)
-        self.page.wait_for_selector(".catalog-page")
-        for _ in range(self.PAGE_SCROLL_SIZE):  # прокрутка до конца страницы
-            self.page.evaluate(self.scroller)
-        time.sleep(1)  # остановка для полной загрузки страницы
-        elements = self.page.query_selector_all('div.product-card-list a[draggable="false"]')
-        elements = list(map(lambda el: el.get_attribute('href'), elements))
-        return elements
-
-    def _get_next_page_link(self, page_link: str) -> None:
-        """Получение ссылки на следующую страницу с текущей
-        version = 0.1
-        """
-        self.page.goto(page_link)
-        self.page.wait_for_selector(".catalog-page")
-        for _ in range(self.PAGE_SCROLL_SIZE):  # прокрутка до конца страницы
-            self.page.evaluate(self.scroller)
-        try:
-            self.page.wait_for_selector('text="Следующая страница"', timeout=3_000)
-            element = self.page.get_by_text(text="Следующая страница")
-            self.pages_links.append(element.get_attribute('href'))
-        except TimeoutError:  # если страницы для поиска закончились
-            self.pages_links.append(0)
-
-    def _get_all_pages_links(self, number_of_pages):
-        """Добавление в список всех ссылок на страницы
-        version = 0.1
-        """
-        self.pages_links.append(self.page.url)  # ссылка на первую страницу каталога
-        if number_of_pages > 1:
-            for i in range(number_of_pages - 1):
-                page_link = self.pages_links[i]
-                if isinstance(page_link, str):
-                    self._get_next_page_link(page_link)  # получение ссылки на следующую страницу
-                else:  # если страницы для поиска закончились (меньше заданного кол-ва)
-                    self.pages_links.pop()  # удаление нуля в конце
+        tag_href = 'href'
+        href_next_page = "Следующая страница"
+        selector_next_page = f':text("{href_next_page}")'
+        self.page.wait_for_selector('.catalog-page')
+        while not self.page.is_visible('.custom-slider__list'):  # пока не видно блок с рекомендуемыми товарами
+            self.page.evaluate(self.scroller)  # прокрутка до конца страницы
+        links = self.page.query_selector_all('div.product-card-list a[draggable="false"]')
+        links = set(map(lambda link: link.get_attribute(tag_href), links))
+        if number_of_goods == 'max':
+            self.goods_links.update(links)
+            if self.page.is_visible(selector_next_page):
+                self.page.goto(self.page.get_by_text(text=href_next_page).get_attribute(tag_href))
+                self._get_goods_links(number_of_goods)
+        else:
+            for link in links:
+                if len(self.goods_links) < number_of_goods:
+                    self.goods_links.add(link)
+                else:
                     break
+            if len(self.goods_links) < number_of_goods and self.page.is_visible(selector_next_page):
+                self.page.goto(self.page.get_by_text(text=href_next_page).get_attribute(tag_href))
+                self._get_goods_links(number_of_goods)
 
     @staticmethod
     def __parse_seller_descr(descr: str) -> tuple:
@@ -115,25 +101,23 @@ class Wildberries:
         # создание итогового словаря по товару
         self.parsing_result.append(product.dict())
 
-    def find_all_goods(self, keyword: str, number_of_pages: int) -> None:
+    def find_all_goods(self, keyword: str, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Поиск всех ссылок на товары по ключевому слову
-        version = 0.1.1
+        version = 0.1.2
         """
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
-            context = browser.new_context()
+            browser = playwright.chromium.launch(headless=True, args=['--disable-blink-features=AutomationControlled'])
+            context = browser.new_context(user_agent=UserAgent().Random())
             self.page = context.new_page()
-            self.page.goto(self.base_link, timeout=1000, wait_until="load")  # открытие ссылки сайта
-            self.page.wait_for_selector('input[id="searchInput"]')  # поиск поля input
-            search_input = self.page.locator('input[id="searchInput"]')  # помещение курсора в input
-            search_input.fill(keyword, timeout=300)
-            search_input.press('Enter')  # запуск процесса поиска
+            self.page.goto(self.base_link)
+            time.sleep(1)
+            input_field = self.page.get_by_placeholder("Найти на Wildberries").first
+            input_field.type(keyword, delay=random.uniform(.1, .5))
+            input_field.press(key='Enter', delay=random.randint(100, 500))  # запуск процесса поиска
             try:  # проверка, что по запросу ничего не найдено
                 self.page.wait_for_selector('text="Попробуйте поискать по-другому или сократить запрос"', timeout=1_000)
             except TimeoutError:  # если по запросу найдены товары
-                self._get_all_pages_links(number_of_pages)  # получение ссылок на все страницы по поиску
-                for link in self.pages_links:
-                    self.goods_links.extend(self._get_goods_links(link))
+                self._get_goods_links(number_of_goods)  # получение ссылок на все страницы по поиску
             finally:
                 browser.close()
 

@@ -23,28 +23,35 @@ class TestWildberries(unittest.TestCase):
             pp.pprint(self.wb.parsing_result[0])
             browser.close()
 
-    def test_one_page(self):
+    def test_one_good(self):
         time.sleep(1)
         self.wb.find_all_goods(self.keyword, 1)
-        self.assertEqual(1, len(self.wb.pages_links))
-        self.assertNotEqual(0, len(self.wb.goods_links))
+        self.assertEqual(1, len(self.wb.goods_links))
 
-    def test_ten_goods(self):
+    def test_many_goods(self):
         time.sleep(1)
-        self.wb.find_all_goods(self.keyword, 1)
-        self.wb.goods_links = self.wb.goods_links[:10]
-        self.assertIsNotNone(self.wb.describe_all_goods())
+        self.wb.find_all_goods(self.keyword, 150)
+        self.assertEqual(150, len(self.wb.goods_links))
 
     def test_empty_page(self):
         time.sleep(1)
-        self.wb.find_all_goods(self.error_keyword, 1)
-        self.assertEqual(0, len(self.wb.pages_links))
+        self.wb.find_all_goods(self.error_keyword)
+        self.assertEqual(0, len(self.wb.goods_links))
 
-    def test_two_pages(self):
+    def test_max_goods(self):
         time.sleep(1)
-        self.wb.find_all_goods(self.keyword, 2)
-        self.assertEqual(2, len(self.wb.pages_links))
+        self.wb.find_all_goods(self.keyword, 'max')
         self.assertNotEqual([], self.wb.goods_links)
+
+    def test_overmuch_goods(self):
+        time.sleep(1)
+        self.wb.find_all_goods(self.keyword, 1500)
+        self.assertNotEqual([], self.wb.goods_links)
+
+    def test_describe_all_goods(self):
+        time.sleep(1)
+        self.wb.find_all_goods(self.keyword)
+        self.assertEqual(10, len(self.wb.describe_all_goods()))
 
     def test_one_product(self):
         time.sleep(1)
