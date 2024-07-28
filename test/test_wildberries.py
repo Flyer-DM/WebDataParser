@@ -53,13 +53,21 @@ class TestWildberries(unittest.TestCase):
         self.wb.find_all_goods(self.keyword)
         self.assertEqual(10, len(self.wb.describe_all_goods()))
 
-    def test_one_product(self):
+    def test_first_product(self):
         time.sleep(1)
         self.__test_product("https://www.wildberries.ru/catalog/228691002/detail.aspx")
 
     def test_second_product(self):
         time.sleep(1)
         self.__test_product("https://www.wildberries.ru/catalog/200178063/detail.aspx")
+
+    def test_third_product(self):
+        time.sleep(1)
+        self.__test_product("https://www.wildberries.ru/catalog/135548188/detail.aspx")
+
+    def test_fourth_product(self):
+        time.sleep(1)
+        self.__test_product("https://www.wildberries.ru/catalog/187291954/detail.aspx")
 
 
 if __name__ == "__main__":

@@ -65,9 +65,10 @@ class Wildberries:
 
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.1.1
+        version = 0.1.2
         """
         title_selector = 'h1[class="product-page__title"]'
+        seler_info_div = '.seller-info__more.hide-mobile'
         self.page.goto(page_link)
         self.page.wait_for_selector(title_selector)
         title = self.page.query_selector(title_selector)
@@ -78,8 +79,7 @@ class Wildberries:
         product.price_wb_wallet = self.page.query_selector('span[class="price-block__wallet-price"]')
         product.price = self.page.query_selector('ins[class="price-block__final-price wallet"]')
         product.full_price = self.page.query_selector('del[class="price-block__old-price"]')
-        product.score = self.page.query_selector('span[class="product-review__rating '
-                                                 'address-rate-mini address-rate-mini--sm"]')
+        product.score = self.page.query_selector('div[class="product-page__common-info"]')
         product.reviews = self.page.query_selector('span[class="product-review__count-review '
                                                    'j-wba-card-item-show j-wba-card-item-observe"]')
         product.category = self.page.query_selector('div[class="breadcrumbs__container"]')
@@ -88,18 +88,15 @@ class Wildberries:
         product.same_category = self.page.query_selector('a[class="product-page__link j-wba-card-item '
                                                          'j-wba-card-item-show j-wba-card-item-observe"]')
         product.refund = self.page.query_selector('li[class="advantages__item advantages__item--refund"]')
-        self.page.hover('.seller-info__more.hide-mobile')  # наведение мышкой на значок подробностей о продавце
-        seller_status = self.page.locator('.seller-params__list')
-        seller_lvl = sold_goods = on_market = None
-        if seller_status is not None:
-            seller_status = seller_status.inner_text()
-            seller_lvl, sold_goods, on_market = self.__parse_seller_descr(seller_status)
-        product.seller_lvl, product.sold_goods, product.on_market = seller_lvl, sold_goods, on_market
+        time.sleep(random.uniform(.5, 1))
+        if self.page.is_visible(seler_info_div):  # проверяем, что есть блок с описанием продавца
+            self.page.hover(seler_info_div)  # наведение мышкой на значок подробностей о продавце
+            seller_status = self.page.locator('.seller-params__list').inner_text()
+            product.seller_lvl, product.sold_goods, product.on_market = self.__parse_seller_descr(seller_status)
         self.page.click('text="Все характеристики и описание"')
-        self.page.wait_for_timeout(50)
+        self.page.wait_for_timeout(random.randint(150, 400))  # ждём, когда прогрузится открытый блок описания
         product.description = self.page.query_selector('p[class="option__text"]')
-        # создание итогового словаря по товару
-        self.parsing_result.append(product.dict())
+        self.parsing_result.append(product.dict())  # создание итогового словаря по товару
 
     def find_all_goods(self, keyword: str, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Поиск всех ссылок на товары по ключевому слову
@@ -110,11 +107,12 @@ class Wildberries:
             context = browser.new_context(user_agent=UserAgent().Random())
             self.page = context.new_page()
             self.page.goto(self.base_link)
-            time.sleep(1)
+            time.sleep(random.uniform(1, 2))
             input_field = self.page.get_by_placeholder("Найти на Wildberries").first
             input_field.type(keyword, delay=random.uniform(.1, .5))
             input_field.press(key='Enter', delay=random.randint(100, 500))  # запуск процесса поиска
             try:  # проверка, что по запросу ничего не найдено
+                time.sleep(random.uniform(1, 2))  # задержка при загрузке страницы
                 self.page.wait_for_selector('text="Попробуйте поискать по-другому или сократить запрос"', timeout=1_000)
             except TimeoutError:  # если по запросу найдены товары
                 self._get_goods_links(number_of_goods)  # получение ссылок на все страницы по поиску
