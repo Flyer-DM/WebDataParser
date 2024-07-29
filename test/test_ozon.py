@@ -1,4 +1,5 @@
 import time
+import pprint
 import unittest
 from parsers import Ozon
 from getuseragent import UserAgent
@@ -6,7 +7,7 @@ from playwright.sync_api import sync_playwright
 from helpers.parsers_helpers import LAUNCH_ARGS
 
 
-class TestWildberries(unittest.TestCase):
+class TestOzon(unittest.TestCase):
 
     def setUp(self):
         self.ozon = Ozon()
@@ -14,11 +15,13 @@ class TestWildberries(unittest.TestCase):
         self.error_keyword = "blahblahblah"
 
     def __test_product(self, link):
+        pp = pprint.PrettyPrinter(indent=4)
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
             context = browser.new_context(user_agent=UserAgent("chrome+firefox").Random())
             self.ozon.page = context.new_page()
             self.ozon._get_good_descr(link)
+            pp.pprint(self.ozon.parsing_result)
             browser.close()
 
     def test_not_implicit_goods(self):
@@ -38,9 +41,9 @@ class TestWildberries(unittest.TestCase):
 
     def test_many_products(self):
         time.sleep(1)
-        self.ozon.find_all_goods(self.keyword, number_of_goods=15)
-        self.ozon.describe_all_goods()
-        self.assertEqual(15, len(self.ozon.parsing_result))
+        self.ozon.find_all_goods(self.keyword, number_of_goods=50)
+        pprint.PrettyPrinter(indent=4).pprint(self.ozon.describe_all_goods())
+        self.assertNotEqual(0, len(self.ozon.parsing_result))
 
     def test_one_product(self):
         time.sleep(1)

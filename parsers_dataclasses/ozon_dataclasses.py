@@ -7,7 +7,7 @@ from playwright.sync_api._generated import ElementHandle
 @dataclass
 class OzonProduct:
 
-    __version__ = "0.1"
+    __version__ = "0.1.1"
     __base_link = "https://www.ozon.ru"
 
     page_link: str = field(init=True)  # ссылка на страницу товара
@@ -21,7 +21,7 @@ class OzonProduct:
     reviews: Optional[int] = field(init=False)  # количество отзывов на товар
     seller: str = field(init=False)  # продавец товара
     seller_href: str = field(init=False)  # ссылка на другие товары продавца
-    refund: Optional[str] = field(init=False)  # наличие возврата
+    refund: str = field(init=False)  # наличие возврата
     description: Optional[str] = field(init=False)  # описание возврата
 
     def dict(self):

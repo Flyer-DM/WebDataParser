@@ -13,7 +13,7 @@ from parsers_dataclasses import OzonProduct
 
 class Ozon:
 
-    __version__ = "0.2.1"
+    __version__ = "0.2.2"
 
     def __init__(self):
         """version = 0.2"""
@@ -26,21 +26,21 @@ class Ozon:
     def _get_goods_links(self, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Сбор всех ссылок на товары. Либо собирается максимальное количество товаров, либо явно
         указанное количество (по умолчанию=10).
-        version = 0.1
+        version = 0.1.1
         """
         id_paginator_content = "#paginatorContent"
         tag_href = 'href'
         href_next_page = "Дальше"
-        class_next_page = '.e6o'
         selector_next_page = f':text("{href_next_page}")'
         self.page.wait_for_selector(id_paginator_content)
         all_products = self.page.query_selector(id_paginator_content)
+        next_page_link = all_products.evaluate_handle('element => element.nextElementSibling').query_selector('a')
+        next_page_link = self.base_link + next_page_link.get_attribute(tag_href)
         links = set(all_products.query_selector_all('.tile-hover-target'))
         if number_of_goods == 'max':
             self.goods_links.update({self.base_link + link.get_attribute(tag_href) for link in links})
             if self.page.is_visible(selector_next_page):
-                next_link = self.base_link + self.page.query_selector(class_next_page).get_attribute(tag_href)
-                self.page.goto(next_link)
+                self.page.goto(next_page_link)
                 self._get_goods_links(number_of_goods)
         else:
             for link in links:
@@ -49,14 +49,13 @@ class Ozon:
                 else:
                     break
             if len(self.goods_links) < number_of_goods and self.page.is_visible(selector_next_page):
-                next_link = self.base_link + self.page.query_selector(class_next_page).get_attribute(tag_href)
-                self.page.goto(next_link)
+                self.page.goto(next_page_link)
                 self._get_goods_links(number_of_goods)
 
     @staticmethod
     def __parse_prices(prices) -> Tuple[Optional[int], int, Optional[int]]:
         """Парсинг трёх видов цен из блока с ценами - цена с картой ozon, обычная цена, старая цена
-        version = 0.1
+        version = 0.1.1
         """
         empty, digit, spec_symbol = '', r'[^\d]', r'\\u2009'
         prices = list(map(lambda p: p.inner_text(), prices))
@@ -64,7 +63,7 @@ class Ozon:
             ozon_card_price, price, old_price = prices[1], prices[3], prices[4]
             ozon_card_price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, ozon_card_price)))
             price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, price)))
-            if re.search(r'\d+', old_price) is not None:
+            if re.search(r'\d+', old_price):
                 old_price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, old_price)))
                 return ozon_card_price, price, old_price  # все возможные цены
             return ozon_card_price, price, None  # цены, кроме старой
@@ -77,45 +76,50 @@ class Ozon:
     @staticmethod
     def __parse_score_data(score_data: str) -> Tuple[Optional[float], Optional[int]]:
         """Парсинг средней оценки и количества отзывов
-        version = 0.1
+        version = 0.1.1
         """
         if score_data == 'Нет отзывов':
             return None, None  # нет не средней оценки, не отзывов
         score = re.search(r'.+(?= •)', score_data)
-        if score is not None:  # если есть средняя оценка
+        if score:  # если есть средняя оценка
             score = float(score.group(0))  # есть и средняя оценка и количество отзывов
         reviews = int(re.search(r'(?<=• ).+(?= )', score_data).group(0).replace(' ', ''))
         return score, reviews
 
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.1
+        version = 0.2
         """
         href = 'href'
         reload_button = "#reload-button"
         seller_selector = 'div[data-widget="webCurrentSeller"]'
         title_selector = 'div[data-widget="webProductHeading"]'
+        score_data_selector = 'div[data-widget="webSingleProductScore"]'
         self.page.goto(page_link)
-        time.sleep(random.uniform(.5, 2))  # ожидание загрузки страница анти-бот защиты (ля первой ссылки в списке)
+        time.sleep(random.uniform(.5, 2))  # ожидание загрузки страница анти-бот защиты (для первой ссылки в списке)
         if self.page.is_visible(reload_button):
             self.page.click("#reload-button")
-        product = OzonProduct(page_link)
-        self.page.wait_for_selector(title_selector)
-        product.title = self.page.query_selector(title_selector)
-        product.article = self.page.query_selector('button[data-widget="webDetailSKU"]')
-        product.category = self.page.query_selector('div[data-widget="breadCrumbs"]')
-        prices = self.page.query_selector('div[data-widget="webPrice"]').query_selector_all('span')
-        product.ozon_card_price, product.price, product.old_price = self.__parse_prices(prices)
-        score_data = self.page.query_selector('div[data-widget="webSingleProductScore"]').inner_text()
-        product.score, product.reviews = self.__parse_score_data(score_data)
-        while not self.page.is_visible(seller_selector):
-            self.page.evaluate(self.scroller)
-        seller_data = self.page.query_selector(seller_selector).query_selector_all('a')
-        product.seller = seller_data[1].inner_text()
-        product.seller_href = seller_data[0].get_attribute(href)
-        product.refund = self.page.query_selector(seller_selector).query_selector_all('li')[-1].inner_text()
-        product.description = self.page.query_selector('div[data-widget="webDescription"]')
-        self.parsing_result.append(product.dict())
+        try:  # проверка, что страница не блокируется страницей с ограничением возраста
+            self.page.wait_for_selector(title_selector, timeout=5_000)
+            product = OzonProduct(page_link)
+            product.title = self.page.query_selector(title_selector)
+            product.article = self.page.query_selector('button[data-widget="webDetailSKU"]')
+            product.category = self.page.query_selector('div[data-widget="breadCrumbs"]')
+            prices = self.page.query_selector('div[data-widget="webPrice"]').query_selector_all('span')
+            product.ozon_card_price, product.price, product.old_price = self.__parse_prices(prices)
+            self.page.wait_for_selector(score_data_selector, timeout=5_000)
+            score_data = self.page.query_selector(score_data_selector).inner_text()
+            product.score, product.reviews = self.__parse_score_data(score_data)
+            while not self.page.is_visible(seller_selector):
+                self.page.evaluate(self.scroller)
+            seller_data = self.page.query_selector(seller_selector).query_selector_all('a')
+            product.seller = seller_data[1].inner_text()
+            product.seller_href = seller_data[0].get_attribute(href)
+            product.refund = self.page.query_selector(seller_selector).query_selector_all('li')[-1].inner_text()
+            product.description = self.page.query_selector('div[data-widget="webDescription"]')
+            self.parsing_result.append(product.dict())
+        except TimeoutError:
+            pass
 
     def find_all_goods(self, keyword: str, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Поиск всех ссылок на товары по ключевому слову
