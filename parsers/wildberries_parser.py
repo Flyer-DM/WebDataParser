@@ -65,7 +65,7 @@ class Wildberries:
 
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.1.2
+        version = 0.2
         """
         title_selector = 'h1[class="product-page__title"]'
         seler_info_div = '.seller-info__more.hide-mobile'
@@ -73,25 +73,26 @@ class Wildberries:
         self.page.wait_for_selector(title_selector)
         title = self.page.query_selector(title_selector)
         product = WildberriesProduct(page_link, title)
-        product.seller = self.page.query_selector('a[class="product-page__header-brand j-wba-card-item '
-                                                  'j-wba-card-item-show j-wba-card-item-observe"]')
+        product.seller = self.page.query_selector('a[data-name-for-wba="Item_Seller_Info_GoToShop"]')
+        product.brand = self.page.query_selector('div[class="product-page__header"]')
         product.article = self.page.query_selector('span[id="productNmId"]')
         product.price_wb_wallet = self.page.query_selector('span[class="price-block__wallet-price"]')
         product.price = self.page.query_selector('ins[class="price-block__final-price wallet"]')
-        product.full_price = self.page.query_selector('del[class="price-block__old-price"]')
+        product.old_price = self.page.query_selector('del[class="price-block__old-price"]')
         product.score = self.page.query_selector('div[class="product-page__common-info"]')
         product.reviews = self.page.query_selector('span[class="product-review__count-review '
                                                    'j-wba-card-item-show j-wba-card-item-observe"]')
         product.category = self.page.query_selector('div[class="breadcrumbs__container"]')
-        producers_goods_data_link = "href{:selectedNomenclature^brandAndSubjectUrl}{on $analitic.proceedAndSave 'IBC'}"
-        product.producers_goods = self.page.query_selector(f'a[data-link="{producers_goods_data_link}"]')
+        seller_goods_data_link = "href{:selectedNomenclature^brandAndSubjectUrl}{on $analitic.proceedAndSave 'IBC'}"
+        product.seller_goods = self.page.query_selector(f'a[data-link="{seller_goods_data_link}"]')
         product.same_category = self.page.query_selector('a[class="product-page__link j-wba-card-item '
                                                          'j-wba-card-item-show j-wba-card-item-observe"]')
         product.refund = self.page.query_selector('li[class="advantages__item advantages__item--refund"]')
-        time.sleep(random.uniform(.5, 1))
+        time.sleep(random.uniform(.3, .6))
         if self.page.is_visible(seler_info_div):  # проверяем, что есть блок с описанием продавца
             self.page.hover(seler_info_div)  # наведение мышкой на значок подробностей о продавце
             seller_status = self.page.locator('.seller-params__list').inner_text()
+            product.seller_score = self.page.query_selector('span[class="address-rate-mini"]')
             product.seller_lvl, product.sold_goods, product.on_market = self.__parse_seller_descr(seller_status)
         self.page.click('text="Все характеристики и описание"')
         self.page.wait_for_timeout(random.randint(150, 400))  # ждём, когда прогрузится открытый блок описания

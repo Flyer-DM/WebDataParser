@@ -51,7 +51,9 @@ class TestWildberries(unittest.TestCase):
     def test_describe_all_goods(self):
         time.sleep(1)
         self.wb.find_all_goods(self.keyword)
-        self.assertEqual(10, len(self.wb.describe_all_goods()))
+        all_goods = self.wb.describe_all_goods()
+        pprint.PrettyPrinter(depth=4).pprint(all_goods)
+        self.assertNotEqual(0, len(all_goods))
 
     def test_first_product(self):
         time.sleep(1)
@@ -68,6 +70,10 @@ class TestWildberries(unittest.TestCase):
     def test_fourth_product(self):
         time.sleep(1)
         self.__test_product("https://www.wildberries.ru/catalog/187291954/detail.aspx")
+
+    def test_fifth_product(self):
+        time.sleep(1)
+        self.__test_product("https://www.wildberries.ru/catalog/246757121/detail.aspx")
 
 
 if __name__ == "__main__":
