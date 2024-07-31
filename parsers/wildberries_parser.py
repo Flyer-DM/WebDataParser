@@ -1,4 +1,3 @@
-import re
 import time
 import random
 from tqdm import tqdm
@@ -51,18 +50,6 @@ class Wildberries:
                 self.page.goto(self.page.get_by_text(text=href_next_page).get_attribute(tag_href))
                 self._get_goods_links(number_of_goods)
 
-    @staticmethod
-    def __parse_seller_descr(descr: str) -> tuple:
-        """Парсинг доп информации о поставщике - уровень поставщика, сколько товаров продано, сколько времени на рынке
-        version = 0.1
-        """
-        descr = descr.replace("\n", " ")
-        level = re.search(r".+(?=  У)", descr)
-        level = level.group(0) if level else None
-        sold_goods = re.search(r"(?:(?<=  )|(?<=^))[\d\s]+(?=  Т)", descr).group(0)
-        on_market = re.search(r"(?<=[он]  ).+(?=  Н)", descr).group(0)
-        return level, sold_goods, on_market
-
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
         version = 0.2
@@ -80,8 +67,7 @@ class Wildberries:
         product.price = self.page.query_selector('ins[class="price-block__final-price wallet"]')
         product.old_price = self.page.query_selector('del[class="price-block__old-price"]')
         product.score = self.page.query_selector('div[class="product-page__common-info"]')
-        product.reviews = self.page.query_selector('span[class="product-review__count-review '
-                                                   'j-wba-card-item-show j-wba-card-item-observe"]')
+        product.reviews = self.page.query_selector('span[data-wba-location="reviews"]')
         product.category = self.page.query_selector('div[class="breadcrumbs__container"]')
         seller_goods_data_link = "href{:selectedNomenclature^brandAndSubjectUrl}{on $analitic.proceedAndSave 'IBC'}"
         product.seller_goods = self.page.query_selector(f'a[data-link="{seller_goods_data_link}"]')
@@ -91,9 +77,8 @@ class Wildberries:
         time.sleep(random.uniform(.3, .6))
         if self.page.is_visible(seler_info_div):  # проверяем, что есть блок с описанием продавца
             self.page.hover(seler_info_div)  # наведение мышкой на значок подробностей о продавце
-            seller_status = self.page.locator('.seller-params__list').inner_text()
+            product.parse_seller_descr(self.page.locator('.seller-params__list'))
             product.seller_score = self.page.query_selector('span[class="address-rate-mini"]')
-            product.seller_lvl, product.sold_goods, product.on_market = self.__parse_seller_descr(seller_status)
         self.page.click('text="Все характеристики и описание"')
         self.page.wait_for_timeout(random.randint(150, 400))  # ждём, когда прогрузится открытый блок описания
         product.description = self.page.query_selector('p[class="option__text"]')

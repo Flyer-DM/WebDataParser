@@ -7,18 +7,18 @@ from playwright.sync_api._generated import ElementHandle
 @dataclass
 class WildberriesProduct:
 
-    __version__ = "0.2"
+    __version__ = "0.3"
     __base_link = "https://www.wildberries.ru"
 
     page_link: str = field(init=True)  # ссылка на страницу товара
     title: str = field(init=True)  # название товара
     seller: str = field(init=False)  # название продавца
-    seller_score: Optional[float] = field(init=False, default=None)  # средняя оценка продавцы
+    seller_score: Optional[float] = field(init=False, default=None)  # средняя оценка продавца
     brand: Optional[str] = field(init=False)  # бренд товара
     article: int = field(init=False)  # артикул товара
-    price_wb_wallet: int = field(init=False)  # цена товара с wb кошельком
-    price: int = field(init=False)  # цена товара со скидкой
-    old_price: int = field(init=False)  # старая цена товара
+    price_wb_wallet: Optional[int] = field(init=False)  # цена товара с wb кошельком
+    price: Optional[int] = field(init=False)  # цена товара со скидкой
+    old_price: Optional[int] = field(init=False)  # старая цена товара
     score: Optional[float] = field(init=False)  # средняя оценка товара
     reviews: Optional[int] = field(init=False)  # количество отзывов на товар
     category: Optional[str] = field(init=False)  # категория товара
@@ -26,7 +26,7 @@ class WildberriesProduct:
     same_category: str = field(init=False)  # ссылка на товары той же категории
     refund: Optional[str] = field(init=False)  # возможность возврата
     seller_lvl: Optional[str] = field(init=False, default=None)  # уровень продавца
-    sold_goods: Optional[str] = field(init=False, default=None)  # сколько товаров было продано продавцом
+    sold_goods: Optional[int] = field(init=False, default=None)  # сколько товаров было продано продавцом
     on_market: Optional[str] = field(init=False, default=None)  # сколько продавец на рынке
     description: str = field(init=False)  # описание товара
 
@@ -35,7 +35,7 @@ class WildberriesProduct:
         return {k: v for k, v in asdict(self).items()}
 
     def __setattr__(self, key: str, value: Optional[Union[str, ElementHandle]]):
-        """version = 0.3"""
+        """version = 0.4"""
         if key in ("seller", "title", "refund", "description"):
             value = self.__inner_text(value)
         elif key in ("price_wb_wallet", "price", "old_price", "reviews"):
@@ -45,18 +45,14 @@ class WildberriesProduct:
         elif key == "article":
             value = int(self.__inner_text(value))
         elif key == "brand":
-            value = self.__inner_text(value.query_selector('a'))
-            value = value if value != '' else None
+            value = value if (value := self.__inner_text(value.query_selector('a'))) != '' else None
         elif key == "score":
-            value = self.__inner_text(value)
-            value = re.search(r'[\d\s\.]+(?=\n)', value) if value else None
-            value = float(value.group(0)) if value else None
+            value = re.search(r'[\d\s\.]+(?=\n)', value) if (value := self.__inner_text(value)) else None
+            value = float(value[0]) if value else None
         elif key == "seller_score":
             value = float(self.__inner_text(value))
         elif key == "category":
             value = self.__inner_text(value).replace('\n', '/')
-        elif key == "sold_goods":
-            value = self.__format_number(value)
         super().__setattr__(key, value)
 
     @staticmethod
@@ -77,6 +73,16 @@ class WildberriesProduct:
     @staticmethod
     def __format_number(number: str) -> Optional[int]:
         """Форматирование целочисленных атрибутов с присутствием нечисловых символов
-        version = 0.2.1
+        version = 0.3
         """
-        return int(re.sub(r'[^\d]', '', number)) if number else None
+        return int(number) if (number := re.sub(r'[^\d]', '', number) if number else None) else None
+
+    def parse_seller_descr(self, seller_data: Optional[ElementHandle]) -> None:
+        """Парсинг доп информации о поставщике - уровень поставщика, сколько товаров продано, сколько времени на рынке
+        version = 0.1
+        """
+        if seller_data:
+            level = re.search(r".+(?=  У)", seller_data := seller_data.inner_text().replace("\n", " "))
+            self.seller_lvl = level[0] if level else None
+            self.sold_goods = int(re.sub(r'[^\d]', '', re.search(r"(?:(?<=  )|(?<=^))[\d\s]+(?=  Т)", seller_data)[0]))
+            self.on_market = re.search(r"(?<=[он]  ).+(?=  Н)", seller_data)[0]
