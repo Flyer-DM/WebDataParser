@@ -4,10 +4,10 @@ from dataclasses import dataclass, field, asdict
 from playwright.sync_api._generated import ElementHandle
 
 
-@dataclass
+@dataclass(slots=True)
 class WildberriesProduct:
 
-    __version__ = "0.3"
+    __version__ = "0.3.1"
     __base_link = "https://www.wildberries.ru"
 
     page_link: str = field(init=True)  # ссылка на страницу товара
@@ -35,9 +35,11 @@ class WildberriesProduct:
         return {k: v for k, v in asdict(self).items()}
 
     def __setattr__(self, key: str, value: Optional[Union[str, ElementHandle]]):
-        """version = 0.4"""
-        if key in ("seller", "title", "refund", "description"):
+        """version = 0.5"""
+        if key in ("title", "refund", "description"):
             value = self.__inner_text(value)
+        elif key == "seller":
+            value = value if (value := self.__inner_text(value)) else "WILDBERRIES"
         elif key in ("price_wb_wallet", "price", "old_price", "reviews"):
             value = self.__format_number(self.__inner_text(value))
         elif key in ("seller_goods", "same_category"):
@@ -50,17 +52,17 @@ class WildberriesProduct:
             value = re.search(r'[\d\s\.]+(?=\n)', value) if (value := self.__inner_text(value)) else None
             value = float(value[0]) if value else None
         elif key == "seller_score":
-            value = float(self.__inner_text(value))
+            value = float(value) if (value := self.__inner_text(value)) else None
         elif key == "category":
             value = self.__inner_text(value).replace('\n', '/')
-        super().__setattr__(key, value)
+        super(WildberriesProduct, self).__setattr__(key, value)
 
     @staticmethod
     def __inner_text(value: Optional[ElementHandle]) -> Optional[str]:
         """Получение текстового содержимого тега
-        version = 0.2
+        version = 0.2.1
         """
-        return value.inner_text() if value else "WILDBERRIES"
+        return value.inner_text() if value else None
 
     @staticmethod
     def __href(value: Optional[ElementHandle]) -> Optional[str]:

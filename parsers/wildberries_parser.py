@@ -12,7 +12,7 @@ from parsers_dataclasses import WildberriesProduct
 
 class Wildberries:
 
-    __version__ = "0.1.2"
+    __version__ = "0.2"
 
     def __init__(self):
         """version = 0.2"""
@@ -52,7 +52,7 @@ class Wildberries:
 
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.2
+        version = 0.2.1
         """
         title_selector = 'h1[class="product-page__title"]'
         seler_info_div = '.seller-info__more.hide-mobile'

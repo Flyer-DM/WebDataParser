@@ -1,7 +1,6 @@
-import re
 import time
 import random
-from typing import Union, Literal, Optional, Tuple
+from typing import Union, Literal, Optional
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from getuseragent import UserAgent
@@ -13,7 +12,7 @@ from parsers_dataclasses import OzonProduct
 
 class Ozon:
 
-    __version__ = "0.2.2"
+    __version__ = "0.3"
 
     def __init__(self):
         """version = 0.2"""
@@ -52,43 +51,9 @@ class Ozon:
                 self.page.goto(next_page_link)
                 self._get_goods_links(number_of_goods)
 
-    @staticmethod
-    def __parse_prices(prices) -> Tuple[Optional[int], int, Optional[int]]:
-        """Парсинг трёх видов цен из блока с ценами - цена с картой ozon, обычная цена, старая цена
-        version = 0.1.1
-        """
-        empty, digit, spec_symbol = '', r'[^\d]', r'\\u2009'
-        prices = list(map(lambda p: p.inner_text(), prices))
-        if len(prices) > 2:
-            ozon_card_price, price, old_price = prices[1], prices[3], prices[4]
-            ozon_card_price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, ozon_card_price)))
-            price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, price)))
-            if re.search(r'\d+', old_price):
-                old_price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, old_price)))
-                return ozon_card_price, price, old_price  # все возможные цены
-            return ozon_card_price, price, None  # цены, кроме старой
-        elif len(prices) == 1:
-            return None, int(re.sub(digit, empty, re.sub(spec_symbol, empty, prices[0]))), None  # только цена без карты
-        price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, prices[0])))
-        old_price = int(re.sub(digit, empty, re.sub(spec_symbol, empty, prices[1])))
-        return None, price, old_price  # цены, кроме цены с картой
-
-    @staticmethod
-    def __parse_score_data(score_data: str) -> Tuple[Optional[float], Optional[int]]:
-        """Парсинг средней оценки и количества отзывов
-        version = 0.1.1
-        """
-        if score_data == 'Нет отзывов':
-            return None, None  # нет не средней оценки, не отзывов
-        score = re.search(r'.+(?= •)', score_data)
-        if score:  # если есть средняя оценка
-            score = float(score.group(0))  # есть и средняя оценка и количество отзывов
-        reviews = int(re.search(r'(?<=• ).+(?= )', score_data).group(0).replace(' ', ''))
-        return score, reviews
-
     def _get_good_descr(self, page_link: str) -> None:
         """Сбор информации о товаре на его странице
-        version = 0.2
+        version = 0.2.1
         """
         href = 'href'
         reload_button = "#reload-button"
@@ -106,10 +71,10 @@ class Ozon:
             product.article = self.page.query_selector('button[data-widget="webDetailSKU"]')
             product.category = self.page.query_selector('div[data-widget="breadCrumbs"]')
             prices = self.page.query_selector('div[data-widget="webPrice"]').query_selector_all('span')
-            product.ozon_card_price, product.price, product.old_price = self.__parse_prices(prices)
+            product.parse_prices(prices)
             self.page.wait_for_selector(score_data_selector, timeout=5_000)
             score_data = self.page.query_selector(score_data_selector).inner_text()
-            product.score, product.reviews = self.__parse_score_data(score_data)
+            product.parse_score_data(score_data)
             while not self.page.is_visible(seller_selector):
                 self.page.evaluate(self.scroller)
             seller_data = self.page.query_selector(seller_selector).query_selector_all('a')
