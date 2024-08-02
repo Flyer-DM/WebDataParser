@@ -4,7 +4,7 @@ from typing import Union, Literal, Optional
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from getuseragent import UserAgent
-from helpers.parsers_helpers import *
+from helpers import *
 from tqdm import tqdm
 
 from parsers_dataclasses import OzonProduct
@@ -12,7 +12,7 @@ from parsers_dataclasses import OzonProduct
 
 class Ozon:
 
-    __version__ = "0.3"
+    __version__ = "0.3.1"
 
     def __init__(self):
         """version = 0.2"""
@@ -21,6 +21,7 @@ class Ozon:
         self.parsing_result: list[dict] = []
         self.scroller = open_scroller()
         self.base_link = "https://www.ozon.ru"
+        self.PARSER_ONE_PRODUCT_MEAN_TIME = 3.16
 
     def _get_goods_links(self, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Сбор всех ссылок на товары. Либо собирается максимальное количество товаров, либо явно

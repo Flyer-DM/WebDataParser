@@ -5,7 +5,7 @@ from typing import List, Dict
 
 class CSVExport(BaseExport):
 
-    __version__ = "0.1.1"
+    __version__ = "0.1.2"
 
     def __init__(self, data: List[Dict], website: str, name: str = None, path: str = None):
         """version = 0.2"""
@@ -22,7 +22,7 @@ class CSVExport(BaseExport):
 
     def export_data(self) -> None:
         """Функция экспорта данных
-        version = 0.2
+        version = 0.2.1
         """
         data = pd.DataFrame(self.data)
-        data.to_csv(self.file_name, index=False)
+        data.to_csv(self.file_name, index=False, encoding='utf-8')

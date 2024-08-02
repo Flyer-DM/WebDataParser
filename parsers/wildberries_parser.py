@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import Optional, Union, Literal
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
-from helpers.parsers_helpers import open_scroller
+from helpers import open_scroller
 from getuseragent import UserAgent
 
 from parsers_dataclasses import WildberriesProduct
@@ -12,7 +12,7 @@ from parsers_dataclasses import WildberriesProduct
 
 class Wildberries:
 
-    __version__ = "0.2"
+    __version__ = "0.2.1"
 
     def __init__(self):
         """version = 0.2"""
@@ -21,6 +21,7 @@ class Wildberries:
         self.parsing_result: list[dict] = []
         self.base_link = "https://www.wildberries.ru"
         self.scroller = open_scroller()
+        self.PARSER_ONE_PRODUCT_MEAN_TIME = 1.5
 
     def _get_goods_links(self, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Сбор всех ссылок на товары. Либо собирается максимальное количество товаров, либо явно
