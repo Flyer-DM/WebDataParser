@@ -15,14 +15,23 @@ MAIN_BTN_STYLE = ft.ButtonStyle(
                 animation_duration=1000,
 )
 
+BACK_BTN_STYLE = ft.ButtonStyle(
+                color={
+                    ft.ControlState.HOVERED: ft.colors.BLACK,
+                },
+                bgcolor={
+                    ft.ControlState.HOVERED: ft.colors.GREY
+                }
+)
+
 MAIN_BTN_WIDTH = 150
 SCND_BTN_WIDHT = 300
 
 
-def add_object(to_add):
+def add_object(*to_add):
     result = ft.Row(
         [
-            ft.Column([to_add],
+            ft.Column([*to_add],
                       alignment=ft.MainAxisAlignment.START,
                       horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                       )
