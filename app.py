@@ -7,7 +7,7 @@ from parsers import PARSERS
 
 
 def main(page: ft.Page):
-    page.title = "WebDataParser 0.1dev"
+    page.title = "WebDataParser 0.1"
     page.window.width = 500
     page.window.height = 300
     page.window.center()
