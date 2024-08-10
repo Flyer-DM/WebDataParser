@@ -5,14 +5,13 @@ from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from getuseragent import UserAgent
 from helpers import *
-from tqdm import tqdm
 
 from parsers_dataclasses import OzonProduct
 
 
 class Ozon:
 
-    __version__ = "0.3.1"
+    __version__ = "0.3.2"
 
     def __init__(self):
         """version = 0.2"""
@@ -89,18 +88,20 @@ class Ozon:
 
     def find_all_goods(self, keyword: str, number_of_goods: Union[Literal['max'], int] = 10) -> None:
         """Поиск всех ссылок на товары по ключевому слову
-        version = 0.1.2
+        version = 0.1.3
         """
         empty_selector = """
       Простите, по вашему запросу товаров сейчас нет.
     """
+        reload_button = "#reload-button"
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
             context = browser.new_context(user_agent=UserAgent("chrome+firefox").Random())
             self.page = context.new_page()
             self.page.goto(self.base_link)  # открытие ссылки сайта
-            time.sleep(random.uniform(1, 3))
-            self.page.click("#reload-button")
+            time.sleep(random.uniform(.5, 2))  # ожидание загрузки страница анти-бот защиты (для первой ссылки в списке)
+            if self.page.is_visible(reload_button):
+                self.page.click(reload_button)
             time.sleep(random.uniform(2, 3))
             self.page.get_by_placeholder("Искать на Ozon").type(keyword, delay=random.uniform(.1, .5))
             self.page.query_selector('button[aria-label="Поиск"]').click(delay=random.randint(100, 500))
@@ -113,14 +114,14 @@ class Ozon:
 
     def describe_all_goods(self) -> Optional[list[dict]]:
         """Создание итогового датасета характеристик всех найденных товаров
-        version = 0.1
+        version = 0.1.1
         """
         if len(self.goods_links):  # проверка, что ссылки на товары были найдены
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(headless=True, args=LAUNCH_ARGS)
                 context = browser.new_context(user_agent=UserAgent("chrome+firefox").Random())
                 self.page = context.new_page()
-                for link in tqdm(self.goods_links, ascii=True):  # сбор данных всех товаров
+                for link in self.goods_links:  # сбор данных всех товаров
                     time.sleep(random.random())
                     self._get_good_descr(link)
                 browser.close()

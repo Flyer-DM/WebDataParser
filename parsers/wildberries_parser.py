@@ -1,6 +1,5 @@
 import time
 import random
-from tqdm import tqdm
 from typing import Optional, Union, Literal
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
@@ -12,7 +11,7 @@ from parsers_dataclasses import WildberriesProduct
 
 class Wildberries:
 
-    __version__ = "0.2.1"
+    __version__ = "0.2.2"
 
     def __init__(self):
         """version = 0.2"""
@@ -108,14 +107,14 @@ class Wildberries:
 
     def describe_all_goods(self) -> Optional[list[dict]]:
         """Создание итогового датасета характеристик всех найденных товаров
-        version = 0.1
+        version = 0.1.1
         """
         if len(self.goods_links):  # проверка, что ссылки на товары были найдены
             with sync_playwright() as playwright:
                 browser = playwright.chromium.launch(headless=True)
                 context = browser.new_context()
                 self.page = context.new_page()
-                for link in tqdm(self.goods_links, ascii=True):  # сбор данных всех товаров
+                for link in self.goods_links:  # сбор данных всех товаров
                     self._get_good_descr(link)
                 browser.close()
             return self.parsing_result
